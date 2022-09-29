@@ -1,104 +1,118 @@
 package com.github.kotlintelegrambot.echo
 
-import com.github.kotlintelegrambot.*
-import com.github.kotlintelegrambot.dispatcher.Dispatcher
+import com.github.kotlintelegrambot.bot
+import com.github.kotlintelegrambot.dispatch
 import com.github.kotlintelegrambot.dispatcher.command
-import com.github.kotlintelegrambot.dispatcher.handlers.MessageHandlerEnvironment
 import com.github.kotlintelegrambot.dispatcher.message
-import com.github.kotlintelegrambot.dispatcher.text
 import com.github.kotlintelegrambot.echo.db.Database
 import com.github.kotlintelegrambot.echo.entity.User
-import com.github.kotlintelegrambot.echo.util.Mapper
+import com.github.kotlintelegrambot.echo.util.*
+import com.github.kotlintelegrambot.echo.util.TimePenaltyManager.Companion.userNeedWait
 import com.github.kotlintelegrambot.entities.ChatId
-import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.extensions.filters.Filter
-import java.io.BufferedReader
-import java.io.File
 import java.io.FileInputStream
-import java.io.FileReader
-import java.io.InputStreamReader
-import java.time.LocalDate
-import java.time.LocalTime
-import java.util.Properties
+import java.util.*
 
 fun main() {
     val properties = Properties()
     properties.load(FileInputStream("bot.properties"))
-
     val db = Database.init()
-    var timePenalty: HashMap<Long?, Long> = HashMap()
 
     val bot = bot {
         token = properties.getProperty("token")
 
         dispatch {
-            message(Filter.Reply) {
-
-                val userFrom = message.from?.id
-                val userId = message.replyToMessage?.from?.id
-
-                if(userFrom == userId) {
+            command("start") {
+                bot.sendMessage(
+                    ChatId.fromId(message.chat.id),
+                    text = "Привет, ${message.from?.firstName ?: "Пользователь"}!\nЭто бот, " +
+                            "при помощи которого можно поднять/опустить показатель репутации" +
+                            ", для того чтоб это сделать, ответь на сообщение " +
+                            "при помощи + или -\n" +
+                            "используй /myrep чтоб посмотреть свой показатель"
+                )
+            }
+            command("help") {
+                bot.sendMessage(
+                    ChatId.fromId(message.chat.id),
+                    text = "/stat - выводит таблицу\n/myrep - покажет твою репутацию"
+                )
+            }
+            command("myrep") {
+                message.from?.id?.let {
                     bot.sendMessage(
                         ChatId.fromId(message.chat.id),
-                        text = "It's not fair! You can't do that!"
+                        text = "${db.getUserName(it)}, твоя репутация: ${db.getReputation(it)}"
                     )
+                }
+            }
+            command("stat") {
+                bot.sendMessage(
+                    ChatId.fromId(message.chat.id),
+                    text = db.getStat()
+                )
+            }
+            command("setpenalty") {
+                bot.sendMessage(
+                    ChatId.fromId(message.chat.id),
+                    text = db.getStat()
+                )
+            }
+
+            message(Filter.Reply) {
+                val text = message.text
+                val users = UserUtils.getUserPair(message)
+                val user = message.replyToMessage?.from
+
+                if (!db.isUserInDB(user)) {
+                    db.addUser(user)
+                }
+
+                if (Helper.isCheating(users, message)) {
+                    bot.sendMessage(ChatId.fromId(message.chat.id), text = "It's not fair! You can't do that!")
                 } else {
-                    val userName = message.replyToMessage?.from?.firstName
-                    var reputation: Int? = 0
-
-                    userId?.let {
-                        if (!db.isUserInDB(it)) {
-                            db.addUser(User(it))
+                    if (userNeedWait(users, text)) {
+                        bot.sendCalmDownMessage(message)
+                    } else {
+                        when (text) {
+                            "+" -> {
+                                db.increaseReputation(user)
+                                TimePenaltyManager.addPenalty(users)
+                                bot.sendPositiveMessage(message, user)
+                            }
+                            "-" -> {
+                                db.decreaseReputation(user)
+                                TimePenaltyManager.addPenalty(users)
+                                bot.sendNegativeMessage(message, user)
+                            }
                         }
                     }
+                }
+            }
 
-                    val now = System.currentTimeMillis()/1000
-                    val was = timePenalty[userFrom]?:121
-                    val time = now - was
+            message(Filter.Text) {
+                if (message.text?.contains("php") == true) {
+                    bot.sendMessage(
+                        ChatId.fromId(message.chat.id),
+                        text = "PHP top!"
+                    )
+                }
+            }
 
-
-                    if (message.text.equals("+")) {
-                        if(time < 60) {
-                            bot.sendMessage(
-                                ChatId.fromId(message.chat.id),
-                                text = "Calm down! You need to wait ${60 - time} sec!"
-                            )
-                        } else {
-                            userId?.let {
-                                db.increaseReputation(userId)
-                                reputation = db.getReputation(userId)
-                            }
-
-                            timePenalty[userFrom] = System.currentTimeMillis()/1000
-                            bot.sendMessage(
-                                ChatId.fromId(message.chat.id),
-                                text = "$userName reputation has been increased! :) \nreputation now is: $reputation"
-                            )
-                        }
-                    } else if (message.text.equals("-")) {
-                        if(time < 60) {
-                            bot.sendMessage(
-                                ChatId.fromId(message.chat.id),
-                                text = "Calm down! You need to wait ${60 - time} sec!"
-                            )
-                        } else {
-                            userId?.let {
-                                db.decreaseReputation(userId)
-                                reputation = db.getReputation(userId)
-                            }
-
-                            timePenalty[userFrom] = System.currentTimeMillis() / 1000
-                            bot.sendMessage(
-                                ChatId.fromId(message.chat.id),
-                                text = "$userName reputation has been decreased! :/ \nreputation now is: $reputation"
-                            )
-                        }
-                    }
+            message(Filter.All) {
+                if (message.newChatMembers != null) {
+                    bot.sendMessage(
+                        ChatId.fromId(message.chat.id),
+                        text = "Привет, ${message.newChatMembers!![0].firstName}!\nВ нашем чате работает бот, " +
+                                "при помощи которого можно поднять/опустить показатель репутации" +
+                                ", для того чтоб это сделать, ответь на сообщение " +
+                                "при помощи + или -"
+                    )
                 }
             }
         }
     }
 
-
     bot.startPolling()
 }
+

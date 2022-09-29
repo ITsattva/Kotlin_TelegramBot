@@ -14,9 +14,10 @@ class Mapper {
 
             for(rawUser in rawUsers) {
                 if(rawUser.contains("=")){
-                    val id = rawUser.split("=")[0].toLong()
-                    val reputation = rawUser.split("=")[1].toInt()
-                    users.add(User(id, reputation))
+                    val name = rawUser.split("=")[0]
+                    val id = rawUser.split("=")[1].toLong()
+                    val reputation = rawUser.split("=")[2].toInt()
+                    users.add(User(name, id, reputation))
                 }
             }
 
@@ -25,7 +26,6 @@ class Mapper {
 
         private fun getRawUsers(rawData: String): List<String> {
             val scanner = Scanner(rawData)
-
             var rawUsers = ""
             while(scanner.hasNext()){
                 rawUsers += scanner.nextLine()
@@ -45,8 +45,8 @@ class Mapper {
             return rawData
         }
 
-        fun userToString(user: User) = "${user.id}=${user.reputation};"
+        fun userToString(user: User) = "${user.name}=${user.id}=${user.reputation};"
 
-        fun usersToHashMap(users: List<User>) = users.associate { Pair(it.id, it.reputation) }
+        fun usersToSortedString(users: List<User>) = users.sortedByDescending { it.reputation }.map { "${it.name}: ${it.reputation}\n" }
     }
 }
