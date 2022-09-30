@@ -6,6 +6,12 @@ import com.github.kotlintelegrambot.entities.User as TelegramUser
 
 class UserUtils {
     companion object {
+        fun isAdmin(user: TelegramUser?): Boolean {
+            val admins = listOf(769557804L, 159503570L)
+            val userId = user?.id
+
+            return admins.contains(userId)
+        }
         fun getFullName(tgUser: TelegramUser?): String {
             val userFirstName = tgUser?.firstName?.replace("=", "")?: ""
             val userLastName = tgUser?.lastName?.replace("=", "")
@@ -18,7 +24,6 @@ class UserUtils {
 
             return userFrom to userTo
         }
-
 
     }
 }

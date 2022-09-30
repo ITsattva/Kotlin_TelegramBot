@@ -10,16 +10,26 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 object Database {
-    private val dbFile = File("database/db")
+    var directory = "database"
+    set(value){
+        dbFile = File("$value/$file")
+        field = value
+    }
+    var file = "db"
+        set(value){
+            dbFile = File("$directory/$value")
+            field = value
+        }
+    private var dbFile = File("$directory/$file")
     private var dbMapIdReputation = mutableMapOf<Long, Int>()
     private var dbMapIdName = mutableMapOf<Long, String>()
 
     private fun createDB() {
         if (!dbFile.exists()) {
-            val directoryDB = File("database")
-            if (!directoryDB.exists()) Files.createDirectory(Path.of("database"))
+            val directoryDB = File(directory)
+            if (!directoryDB.exists()) Files.createDirectory(Path.of(directory))
 
-            Files.createFile(Path.of("database/db"))
+            Files.createFile(Path.of("$directory/$file"))
         }
     }
 
@@ -55,9 +65,9 @@ object Database {
     }
 
     private fun updateReputation(id: Long, reputation: Int?) {
-        val regex = Regex("${id}=-*\\d")
+        val regex = Regex("${id}=-*\\d+;")
         val oldData = Mapper.getRawData(dbFile)
-        val newData = regex.replace(oldData, "$id=$reputation")
+        val newData = regex.replace(oldData, "$id=$reputation;")
         updateDB(newData)
     }
 
