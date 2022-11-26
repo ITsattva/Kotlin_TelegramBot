@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="db.TestUserDB" tests="1" skipped="0" failures="0" errors="0" timestamp="2022-10-21T16:38:45" hostname="HOME-PC" time="0.205">
+  <properties/>
+  <testcase name="showAll" classname="db.TestUserDB" time="0.205"/>
+  <system-out><![CDATA[showAll()
+SELECT * FROM users 
+ parameters=null
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

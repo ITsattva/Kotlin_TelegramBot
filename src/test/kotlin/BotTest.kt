@@ -1,4 +1,4 @@
-import com.github.kotlintelegrambot.echo.db.Database
+import com.github.kotlintelegrambot.echo.db.UsersDB
 import com.github.kotlintelegrambot.echo.util.UserUtils
 import com.github.kotlintelegrambot.entities.User as TelegramUser
 import org.junit.AfterClass
@@ -10,11 +10,10 @@ import com.github.kotlintelegrambot.echo.entity.User
 import com.github.kotlintelegrambot.echo.util.TimeManager
 import com.github.kotlintelegrambot.entities.Chat
 import com.github.kotlintelegrambot.entities.Message
-import java.io.FileWriter
 
 class BotTest {
     companion object {
-        var db: Database = Database
+        var db: UsersDB = UsersDB
         val fakeUser1 = TelegramUser(firstName = "test1", id = 1241, isBot = false)
         val fakeUser2 = TelegramUser(firstName = "test2", id = 2324, isBot = false)
         val fakeUser3 = TelegramUser(firstName = "test3", id = 3547, isBot = true)
@@ -26,7 +25,6 @@ class BotTest {
         fun init() {
             println("init()")
             db.directory = "resources"
-            db.file = "testDB"
 
             addUsersToDB()
         }
@@ -36,7 +34,6 @@ class BotTest {
         fun clean() {
             println("clean()")
 
-            clearDB()
         }
 
 
@@ -49,12 +46,12 @@ class BotTest {
             }
         }
 
-        private fun clearDB(){
-            with(db){
-                val outputStream = FileWriter("$directory/$file")
-                outputStream.write("")
-            }
-        }
+//        private fun clearDB(){
+//            with(db){
+//                val outputStream = FileWriter("$directory/$file")
+//                outputStream.write("")
+//            }
+//        }
 
         fun showAll(){
             val getUsersMethod: Method = db.javaClass.getDeclaredMethod("getUsers")

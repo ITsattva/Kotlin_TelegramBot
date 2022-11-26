@@ -3,7 +3,7 @@ package com.github.kotlintelegrambot.echo.util
 import com.github.kotlintelegrambot.entities.Message
 
 class PollHandler {
-    enum class Type {RESTRICTION, BAN}
+    enum class Type {RESTRICTION, BAN, DUEL}
 
     companion object {
         var type: Type = Type.RESTRICTION
